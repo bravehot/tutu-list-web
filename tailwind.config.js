@@ -5,7 +5,13 @@ module.exports = {
     './node_modules/@themesberg/flowbite/**/*.js'
   ],
   theme: {
-    extend: {}
+    extend: {
+      grayscale: {
+        50: '50%',
+        100: '100%'
+      }
+    }
   },
+  // eslint-disable-next-line global-require
   plugins: [require('@themesberg/flowbite/plugin')]
 }
