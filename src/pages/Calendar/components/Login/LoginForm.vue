@@ -102,7 +102,7 @@ const getVerificationCode = () => {
   loginFormRef.value?.validate(
     (errors: any) => {
       if (!errors) {
-        timer.value = setInterval(() => {
+        timer.value = window.setInterval(() => {
           if (verificationText.value === 1) {
             verificationText.value = 60
             clearInterval(timer.value)
