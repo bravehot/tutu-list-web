@@ -41,6 +41,7 @@
                   'bg-red-500 rounded-2xl text-lg font-medium py-3 hover:bg-red-400',
                   $style['clay-button']
                 ]"
+                @click="handleLogin"
               >
                 登 录
               </button>
@@ -68,9 +69,17 @@
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
-  name: 'HomeInfo'
+  name: 'HomeInfo',
+  setup() {
+    const router = useRouter()
+    const handleLogin = () => {
+      router.push('/login')
+    }
+    return { handleLogin }
+  }
 })
 </script>
 <style scoped module>

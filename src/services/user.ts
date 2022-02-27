@@ -1,7 +1,9 @@
+import type User from '@/types/user'
+
 import request from './api'
 
 const getUser = () => {
-  request({
+  return request<User>({
     url: '/user'
   })
 }

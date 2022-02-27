@@ -6,18 +6,13 @@ declare module '*.vue' {
   export default component
 }
 
-// interface window {
-//   $message: MessageProviderInst
-// }
-
 interface ImportMetaEnv {
   readonly VITE_AUTHING_ID: string
   readonly VITE_DEV_URL: string
   readonly VITE_STAGING_URL: string
   readonly VITE_PRODUCTION_URL: string
-
-  
 }
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

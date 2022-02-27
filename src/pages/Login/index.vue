@@ -1,56 +1,61 @@
-<script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useMessage } from 'naive-ui'
+<template>
+  <section id="tutu-app-login" />
+</template>
 
-import useSettingStore from '@/stores/useSettingStore'
-import { Guard } from '@authing/native-js-ui-components'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { Guard, User } from '@authing/native-js-ui-components'
 import '@authing/native-js-ui-components/lib/index.min.css'
 
-const settingStore = useSettingStore()
+const router = useRouter()
+
 const authingContainer = ref<HTMLElement>()
 
-const message = useMessage()
-window.$message = message
 onMounted(() => {
   const guard = new Guard(import.meta.env.VITE_AUTHING_ID)
   guard.on('load', () => {
+    const tutuLoginContainer = document.getElementById('tutu-app-login')
     const container = document.getElementById('authing_guard_container')
     if (container) {
+      document.body.removeChild(container)
       authingContainer.value = container
+      tutuLoginContainer?.appendChild(container)
     }
   })
-  // 监听登录事件
-  guard.on('login', (user) => {
-    console.log(user)
+  guard.on('load-error', () => {
+    window.$message.error('Error loading authing')
+  })
+  // 监听登录成功事件
+  guard.on('login', (user: User) => {
+    const { token, id, tokenExpiredAt } = user || {}
     if (authingContainer.value) {
-      authingContainer.value.style.display = 'none'
+      window.localStorage.setItem('_authing_token', token || '')
+      window.localStorage.setItem('_auth_user_id', id)
+      window.localStorage.setItem('_auth_expiredAt', tokenExpiredAt || '')
+      router.push('/calendar')
     }
   })
 
   // 监听登录失败事件
   guard.on('login-error', (error) => {
+    // eslint-disable-next-line no-console
     console.log(error, 'login-error')
   })
 
   // 监听注册成功事件
   guard.on('register', (user) => {
+    // eslint-disable-next-line no-console
     console.log(user, 'register')
   })
 
   // 监听注册失败事件
   guard.on('register-error', (error) => {
+    // eslint-disable-next-line no-console
     console.log(error, 'register-error')
   })
 })
-
-watch(
-  () => settingStore.isLogin,
-  (isLogin) => {
-    if (isLogin && authingContainer.value) {
-      authingContainer.value.style.display = 'none'
-    }
-  }
-)
 </script>
 
 <style lang="css">

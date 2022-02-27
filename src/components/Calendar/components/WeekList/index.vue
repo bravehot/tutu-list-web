@@ -14,7 +14,7 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { NText } from 'naive-ui'
 import useSettingStore from '@/stores/useSettingStore'
-import { WEEK_INFO } from '@/constant/index'
+import { WEEK_INFO } from '@/constant'
 
 const settingStore = useSettingStore()
 const { weekNormal, weekStart } = storeToRefs(settingStore)

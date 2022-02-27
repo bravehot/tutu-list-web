@@ -8,12 +8,13 @@ export type SettingStoreType = {
 }
 
 const useSettingStore = defineStore('setting', {
-  state: () => ({
-    weekStart: 'startMonday',
-    weekNormal: true,
-    weekList: [],
-    isLogin: false
-  }),
+  state: () =>
+    ({
+      weekStart: 'startMonday',
+      weekNormal: true,
+      weekList: [],
+      isLogin: false
+    } as SettingStoreType),
   actions: {
     changeLoginState() {
       this.isLogin = !this.isLogin

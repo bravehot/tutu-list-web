@@ -1,10 +1,12 @@
 import axios from 'axios'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
+import router from '@/routes'
+
 type ResponseType<T> = {
   code: number
   message: string
-  data: T[]
+  data: T
 }
 const { MODE, VITE_STAGING_URL, VITE_DEV_URL, VITE_PRODUCTION_URL } = import.meta.env
 
@@ -22,6 +24,17 @@ switch (MODE) {
   default:
     break
 }
+
+const errorMessage = (message: string) => {
+  // $message 会有一定程度的延迟挂载，如果没有挂载上，使用console.error做降级处理
+  if (window.$message) {
+    window.$message.error(message)
+  } else {
+    // eslint-disable-next-line no-console
+    console.error(message)
+  }
+}
+
 const axiosInterface = axios.create({
   baseURL: `${BASE_URL}/api`,
   timeout: 10000,
@@ -34,25 +47,37 @@ const axiosInterface = axios.create({
 axiosInterface.interceptors.request.use((config: AxiosRequestConfig) => {
   const token = localStorage.getItem('_authing_token')
   if (token) {
-    // eslint-disable-next-line no-param-reassign
-    config.headers!.Authorization = `${token}`
+    const { headers } = config
+    headers!.Authorization = `${token}`
   }
   return config
 })
 
 // 响应拦截
 axiosInterface.interceptors.response.use((response: AxiosResponse) => {
-  console.log('response: ', response)
-  if (response.status === 200) {
-    return response.data
+  const { status, data } = response
+
+  // 处理 http 请求状态码
+  if (status === 200) {
+    const { code } = data
+    // const settingsStore = useSettingStore()
+    switch (code) {
+      case 403:
+        router.push('/login')
+        break
+      case code !== 200:
+        errorMessage(data.message)
+        break
+      default:
+        break
+    }
   }
-  return {}
+  return response
 })
 
-const request = async <T>(config: AxiosRequestConfig): Promise<ResponseType<T>> => {
-  const { data } = await axiosInterface.request<ResponseType<T>>(config)
-  console.log('data: ', data)
-  return { code: data.code, data: data.data, message: data.message }
+const request = async <T = any>(config: AxiosRequestConfig): Promise<ResponseType<T>> => {
+  const { data } = await axiosInterface(config)
+  return data
 }
 
 export default request
