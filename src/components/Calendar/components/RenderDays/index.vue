@@ -13,7 +13,9 @@ import { defineProps, watchEffect, reactive } from 'vue'
 import dayjs from 'dayjs'
 import useSettingStore from '@/stores/useSettingStore'
 
-import { MOCK_INFO } from '@/mock/index'
+// import { MOCK_INFO } from '@/mock/index'
+import { getTodoByMonth } from '@/services/todo'
+
 import Popover from './Popover.vue'
 
 import type { RenderDaysType } from '../../types'
@@ -31,16 +33,34 @@ const renderDaysInfo = reactive<{
 
 watchEffect(async () => {
   const [year, month] = dayjs(props.currentMonth).format('YYYY-MM').split('-')
-  const renderDays = getRenderDaysConfig(+year, +month, settingStore.weekStart).map(
-    (renderItem, index) => {
+
+  // 拿到当前月的农历/休班信息
+  const renderDaysConfig = getRenderDaysConfig(+year, +month, settingStore.weekStart)
+  if (renderDaysConfig.length) {
+    const { year: startYear, month: startMonth, day: startDay } = renderDaysConfig[0]
+    const {
+      year: endYear,
+      month: endMonth,
+      day: endDay
+    } = renderDaysConfig[renderDaysConfig.length - 1]
+    const { data } = await getTodoByMonth({
+      startTime: `${startYear}-${startMonth}-${startDay}`,
+      endTime: `${endYear}-${endMonth}-${endDay}`
+    })
+    const renderDayResult = renderDaysConfig.map((renderDayItem) => {
+      const { year: renderYear, month: renderMonth, day: renderDay } = renderDayItem
+      const findTodoList = data.find(
+        (item) => item.time === `${renderYear}-${renderMonth}-${renderDay}`
+      )
       return {
-        ...renderItem,
-        todoList: MOCK_INFO[index] || []
+        ...renderDayItem,
+        todoList: findTodoList?.todoItems
       }
-    }
-  )
-  const res = await Promise.resolve(renderDays)
-  renderDaysInfo.renderDaysList = res
+    })
+    renderDaysInfo.renderDaysList = renderDayResult
+  } else {
+    window.$message.error('月信息加载失败')
+  }
 })
 
 const changeRenderDaysInfo = (index: number, todoList: Pick<RenderDaysType, 'todoList'>) => {
@@ -51,6 +71,10 @@ const changeRenderDaysInfo = (index: number, todoList: Pick<RenderDaysType, 'tod
 </script>
 
 <style scoped module>
+.render-days-wrapper {
+  height: calc(100vh - 80px);
+}
+
 .render-days-wrapper {
   height: calc(100vh - 80px);
 }

@@ -14,7 +14,11 @@
       :style="{ width: '300px' }"
       trigger="click"
       :placement="getPlacement(index, renderDaysList)"
-      :on-update:show="handlePopoverShow"
+      :on-update:show="
+        (value: boolean) => {
+          handlePopoverShow(value, `${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`)
+        }
+      "
     >
       <template #trigger>
         <section class="h-full overflow-hidden relative">
@@ -30,9 +34,9 @@
                 ]"
                 >{{ dayInfo.day }}</span
               >
-              <span class="cName text-xs text-gray-400 align-bottom">{{
-                dayInfo.festivalName || dayInfo.cName
-              }}</span>
+              <span class="cName text-xs text-gray-400 align-bottom">
+                {{ dayInfo.festivalName || dayInfo.cName }}
+              </span>
             </div>
             <span
               v-if="dayInfo.isHoliday"
@@ -94,11 +98,14 @@ import dayjs from 'dayjs'
 /**
  * Container 包含可拖动的元素或组件，它的每一个子元素都应该被 Draggable 包裹
  * Draggable 每一个要被设置为可拖动的元素都需要被 Draggable 包裹。
+ * vue3-smooth-dnd 目前无 ts 版本
  */
 // @ts-ignore
 import { Container, Draggable } from 'vue3-smooth-dnd'
-import type { RenderDaysType } from '../../types'
+import { saveTodoInfo } from '@/services/todo'
 import { getPlacement } from '../../utils'
+
+import type { RenderDaysType } from '../../types'
 
 import PopoverTitle from './PopoverTitle.vue'
 import PopoverContent from './PopoverContent.vue'
@@ -120,12 +127,12 @@ const openPopoverIndex = reactive({
 })
 
 const TODAY = shallowRef<string>(dayjs().format('YYYY-M-D'))
-const todoContext = reactive<{ title: string; content: string }>({
+const todoContext = reactive<{ title: string; description: string }>({
   title: '',
-  content: ''
+  description: ''
 })
 
-const handleChangeTodoContext = (type: 'title' | 'content', value: string) => {
+const handleChangeTodoContext = (type: 'title' | 'description', value: string) => {
   todoContext[type] = value
 }
 
@@ -142,32 +149,48 @@ const handleClickDay = (event: MouseEvent, index: number) => {
     const findTodo = todoList.find((todoItem) => todoItem.id === Number(todoId))
     const { title = '', description = '' } = findTodo || {}
 
-    todoContext.content = description
+    todoContext.description = description
     todoContext.title = title
   } else {
-    todoContext.content = ''
+    todoContext.description = ''
     todoContext.title = ''
   }
 }
 
-const handlePopoverShow = (visible: boolean) => {
+const handleSaveTodoInfo = async (info: any, type: 'ADD' | 'EDIT') => {
+  console.log('type: ', type)
+  console.log('info: ', info)
+  const data = await saveTodoInfo(info)
+  console.log('data: ', data)
+}
+
+const handlePopoverShow = (visible: boolean, time: string) => {
   if (!visible) {
     const { popoverIndex, todoId } = toRefs(openPopoverIndex)
-    // check or edit
+    // 查看 或 编辑
     if (!Number.isNaN(todoId.value)) {
       const { todoList = [], year, month, day } = props.renderDaysList[popoverIndex.value]
       const findTodo = todoList.find((todoItem) => todoItem.id === Number(todoId.value))
       const { title = '', description = '' } = findTodo || {}
-      // check the info has changed
-      if (title !== todoContext.title || description !== todoContext.content) {
+      if (title !== todoContext.title || description !== todoContext.description) {
         const requestInfo = {
           id: todoId.value,
           time: `${year}-${month}-${day}`,
           title: todoContext.title,
-          content: todoContext.content
+          description: todoContext.description
         }
-        console.log('requestInfo: ', requestInfo)
+        handleSaveTodoInfo(requestInfo, 'EDIT')
       }
+    } else if (todoContext.title || todoContext.description) {
+      // 新增
+      handleSaveTodoInfo(
+        {
+          title: todoContext.title,
+          description: todoContext.description,
+          time
+        },
+        'ADD'
+      )
     }
   }
 }

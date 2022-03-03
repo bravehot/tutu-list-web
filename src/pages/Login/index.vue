@@ -34,6 +34,7 @@ onMounted(() => {
       window.localStorage.setItem('_authing_token', token || '')
       window.localStorage.setItem('_auth_user_id', id)
       window.localStorage.setItem('_auth_expiredAt', tokenExpiredAt || '')
+      // document.cookie = `csrfToken=${token}` || ''
       router.push('/calendar')
     }
   })

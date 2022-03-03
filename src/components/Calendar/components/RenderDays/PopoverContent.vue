@@ -11,11 +11,11 @@
 
   <textarea
     ref="descriptionDOM"
-    :value="todoContext.content"
+    :value="todoContext.description"
     :class="['text-sm w-full px-1 placeholder-gray-300', $style['base-input'], $style.description]"
     type="textarea"
     placeholder="请输入描述"
-    @input="handleInputChange($event, 'content')"
+    @input="handleInputChange($event, 'description')"
   />
 </template>
 <script setup lang="ts">
@@ -24,28 +24,28 @@ import { reactive, ref, onMounted, defineProps, watch, defineEmits } from 'vue'
 const props = defineProps<{
   todoContext: {
     title: string
-    content: string
+    description: string
   }
 }>()
 const emit = defineEmits<{
-  (_event: 'change-info', _type: 'title' | 'content', _value: string): void
+  (_event: 'change-info', _type: 'title' | 'description', _value: string): void
 }>()
 
 const descriptionDOM = ref<HTMLTextAreaElement>()
 const titleDOM = ref<HTMLInputElement>()
 
-const todoContext = reactive<{ title: string; content: string }>({
+const todoContext = reactive<{ title: string; description: string }>({
   title: props.todoContext.title,
-  content: props.todoContext.content
+  description: props.todoContext.description
 })
 
 onMounted(() => {
   titleDOM?.value?.focus()
 })
 
-watch(props.todoContext, ({ title, content }, _prev) => {
+watch(props.todoContext, ({ title, description }, _prev) => {
   todoContext.title = title
-  todoContext.content = content
+  todoContext.description = description
 })
 
 const handleInputKeyDown = (event: KeyboardEvent) => {
@@ -55,7 +55,7 @@ const handleInputKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-const handleInputChange = (event: Event, type: 'title' | 'content') => {
+const handleInputChange = (event: Event, type: 'title' | 'description') => {
   const target = event?.target as HTMLInputElement
   emit('change-info', type, target.value)
 }

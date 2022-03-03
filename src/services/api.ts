@@ -8,6 +8,7 @@ type ResponseType<T> = {
   message: string
   data: T
 }
+
 const { MODE, VITE_STAGING_URL, VITE_DEV_URL, VITE_PRODUCTION_URL } = import.meta.env
 
 let BASE_URL: string = ''
@@ -23,16 +24,6 @@ switch (MODE) {
     break
   default:
     break
-}
-
-const errorMessage = (message: string) => {
-  // $message 会有一定程度的延迟挂载，如果没有挂载上，使用console.error做降级处理
-  if (window.$message) {
-    window.$message.error(message)
-  } else {
-    // eslint-disable-next-line no-console
-    console.error(message)
-  }
 }
 
 const axiosInterface = axios.create({
@@ -59,23 +50,17 @@ axiosInterface.interceptors.response.use((response: AxiosResponse) => {
 
   // 处理 http 请求状态码
   if (status === 200) {
-    const { code } = data
-    // const settingsStore = useSettingStore()
-    switch (code) {
-      case 403:
-        router.push('/login')
-        break
-      case code !== 200:
-        errorMessage(data.message)
-        break
-      default:
-        break
+    const { code, message } = data
+    if (code === 403) {
+      router.push('/login')
+    } else if (code !== 200) {
+      window.$message.error(message)
     }
   }
   return response
 })
 
-const request = async <T = any>(config: AxiosRequestConfig): Promise<ResponseType<T>> => {
+const request = async <T>(config: AxiosRequestConfig): Promise<ResponseType<T>> => {
   const { data } = await axiosInterface(config)
   return data
 }

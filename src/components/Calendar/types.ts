@@ -20,11 +20,10 @@ type RenderDaysType = {
   festivalName: string
   todoList?: Array<{
     id: number
-    title: string
+    doneTime: string
     description: string
-    done: boolean
-    creatTime: number
-    editTime?: number
+    title: string
+    done: 0 | 1
   }>
 }
 

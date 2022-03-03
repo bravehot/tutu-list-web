@@ -1,5 +1,5 @@
 <template>
-  <section class="flex items-end pb-2 border-b border-gray-100">
+  <section class="flex pb-2 border-b border-gray-100">
     <Icon size="22" class="mr-2">
       <CalendarSharp :class="calendarSharpColor" />
     </Icon>

@@ -1,15 +1,27 @@
 import request from './api'
 
-const getTodoList = () => {
-  request({
-    baseURL: '/todo'
+const saveTodoInfo = (info: API.TodoSaveRequest) => {
+  return request({
+    url: '/todo/addTodoItem',
+    method: 'POST',
+    data: info
   })
 }
 
-const getTodoList1 = () => {
-  request({
-    baseURL: '/todo'
+const getTodoByDay = (params: { time: string }) => {
+  return request({
+    url: '/todo/getTodoListByDay',
+    method: 'GET',
+    params
   })
 }
 
-export { getTodoList, getTodoList1 }
+const getTodoByMonth = (params: { startTime: string; endTime: string }) => {
+  return request<API.TodoList[]>({
+    url: '/todo/getTodoListByMonth',
+    method: 'GET',
+    params
+  })
+}
+
+export { saveTodoInfo, getTodoByDay, getTodoByMonth }
