@@ -6,7 +6,16 @@ type CurrentTimeType = {
 
 type ChangeCurrentTimeType = (_value: CurrentTimeType) => void
 
+type TodoListType = {
+  id: number
+  doneTime: string
+  description: string
+  title: string
+  done: 0 | 1
+}
 type RenderDaysType = {
+  id?: number
+  time: string
   cName: string
   year: number
   month: number
@@ -18,13 +27,7 @@ type RenderDaysType = {
   isHoliday: boolean
   isAdjustRest: boolean
   festivalName: string
-  todoList?: Array<{
-    id: number
-    doneTime: string
-    description: string
-    title: string
-    done: 0 | 1
-  }>
+  todoList?: TodoListType[]
 }
 
 type InputInfoType = {
@@ -42,5 +45,6 @@ export {
   RenderDaysType,
   InputInfoType,
   HandleMonthType,
-  PlacementType
+  PlacementType,
+  TodoListType
 }

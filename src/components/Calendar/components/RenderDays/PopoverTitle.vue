@@ -1,5 +1,5 @@
 <template>
-  <section class="flex pb-2 border-b border-gray-100">
+  <section class="flex pb-2 border-b border-gray-100 items-center">
     <Icon size="22" class="mr-2">
       <CalendarSharp :class="calendarSharpColor" />
     </Icon>
@@ -7,6 +7,21 @@
       <span v-if="[0, 1, 2].includes(Math.abs(titleInfo.diffDays))">{{ titleInfo.title }}</span>
       <span v-else>{{ titleInfo.title }}</span>
     </p>
+
+    <n-button
+      v-if="todoListId && todoListId !== -1"
+      class="ml-auto"
+      quaternary
+      strong
+      circle
+      @click="handleDelete"
+    >
+      <template #icon>
+        <n-icon size="18" class="text-red-500">
+          <Trash />
+        </n-icon>
+      </template>
+    </n-button>
   </section>
 </template>
 <script setup lang="ts">
@@ -14,20 +29,25 @@ import { computed, defineProps } from 'vue'
 import dayjs from 'dayjs'
 import { storeToRefs } from 'pinia'
 
-import updateLocale from 'dayjs/plugin/updateLocale'
-// eslint-disable-next-line import/no-unresolved
-import weekOfYear from 'dayjs/plugin/WeekOfYear'
+import { NButton, NIcon } from 'naive-ui'
 import { Icon } from '@vicons/utils'
-import { CalendarSharp } from '@vicons/ionicons5'
+import { CalendarSharp, Trash } from '@vicons/ionicons5'
+
+import updateLocale from 'dayjs/plugin/updateLocale'
+import weekOfYear from 'dayjs/plugin/weekOfYear'
 
 import useSettingStore from '@/stores/useSettingStore'
 
 const props = defineProps<{
   time: string
+  todoListId?: number
+}>()
+
+const emits = defineEmits<{
+  (_event: 'delete'): void
 }>()
 
 const { weekStart, weekList } = storeToRefs(useSettingStore())
-
 dayjs.extend(weekOfYear)
 
 if (weekStart.value === 'startMonday') {
@@ -90,4 +110,8 @@ const calendarSharpColor = computed(() => {
   }
   return diffDays > 0 ? 'text-green-400	' : 'text-red-400	'
 })
+
+const handleDelete = () => {
+  emits('delete')
+}
 </script>

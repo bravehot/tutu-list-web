@@ -8,7 +8,7 @@
       'px-2 py-1 border-l border-b h-full',
       { 'bg-gray-50': dayInfo.isLastMonth || dayInfo.isNextMonth }
     ]"
-    @click="handleClickDay($event, index)"
+    @click="handleClickDay($event, index, dayInfo)"
   >
     <n-popover
       :style="{ width: '300px' }"
@@ -86,7 +86,11 @@
           </section>
         </section>
       </template>
-      <PopoverTitle :time="`${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`" />
+      <PopoverTitle
+        :time="`${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`"
+        :todo-list-id="currentOpen.id"
+        @delete="handleDeleteItem"
+      />
       <PopoverContent :todo-context="todoContext" @change-info="handleChangeTodoContext" />
     </n-popover>
   </section>
@@ -102,10 +106,10 @@ import dayjs from 'dayjs'
  */
 // @ts-ignore
 import { Container, Draggable } from 'vue3-smooth-dnd'
-import { saveTodoInfo } from '@/services/todo'
+import { saveTodoInfo, deleteTodoItem, getTodoByDay } from '@/services/todo'
 import { getPlacement } from '../../utils'
 
-import type { RenderDaysType } from '../../types'
+import type { RenderDaysType, TodoListType } from '../../types'
 
 import PopoverTitle from './PopoverTitle.vue'
 import PopoverContent from './PopoverContent.vue'
@@ -113,14 +117,15 @@ import PopoverContent from './PopoverContent.vue'
 type PopoverPropsType = {
   renderDaysList: RenderDaysType[]
 }
-
-type TodoListType = Pick<RenderDaysType, 'todoList'>
-
 const props = defineProps<PopoverPropsType>()
-const emit = defineEmits<{
-  (_event: 'change-info', _index: number, _todoList: TodoListType): void
+const emits = defineEmits<{
+  (_event: 'change-info', _info: { index: number; todoList: TodoListType[] }): void
 }>()
 
+const currentOpen = reactive<{ id: number; time: string }>({
+  id: -1,
+  time: ''
+})
 const openPopoverIndex = reactive({
   popoverIndex: -1,
   todoId: -1
@@ -136,9 +141,12 @@ const handleChangeTodoContext = (type: 'title' | 'description', value: string) =
   todoContext[type] = value
 }
 
-const handleClickDay = (event: MouseEvent, index: number) => {
+const handleClickDay = (event: MouseEvent, index: number, dayInfo: RenderDaysType) => {
   const target = event.target as HTMLElement
   const todoId = target.dataset.id
+
+  currentOpen.id = Number(todoId) ?? -1
+  currentOpen.time = dayInfo.time
 
   openPopoverIndex.popoverIndex = index
   openPopoverIndex.todoId = Number(todoId)
@@ -157,11 +165,28 @@ const handleClickDay = (event: MouseEvent, index: number) => {
   }
 }
 
-const handleSaveTodoInfo = async (info: any, type: 'ADD' | 'EDIT') => {
-  console.log('type: ', type)
-  console.log('info: ', info)
-  const data = await saveTodoInfo(info)
-  console.log('data: ', data)
+const getCurrentDayInfo = async (time: string) => {
+  const { code, data } = await getTodoByDay({ time })
+  if (code === 200) {
+    const findIndex = props.renderDaysList.findIndex((item) => {
+      return item.time === data.time
+    })
+    if (findIndex !== -1) {
+      emits('change-info', {
+        index: findIndex,
+        todoList: data.todoItems ?? []
+      })
+    }
+  }
+}
+
+const handleSaveTodoInfo = async (info: API.TodoSaveRequest) => {
+  const { code } = await saveTodoInfo(info)
+  if (code === 200) {
+    window.$message.success('添加成功')
+    // 更新当天的 todo 项
+    getCurrentDayInfo(info.time)
+  }
 }
 
 const handlePopoverShow = (visible: boolean, time: string) => {
@@ -169,28 +194,26 @@ const handlePopoverShow = (visible: boolean, time: string) => {
     const { popoverIndex, todoId } = toRefs(openPopoverIndex)
     // 查看 或 编辑
     if (!Number.isNaN(todoId.value)) {
-      const { todoList = [], year, month, day } = props.renderDaysList[popoverIndex.value]
+      const { todoList = [], time: renderTime } = props.renderDaysList[popoverIndex.value]
       const findTodo = todoList.find((todoItem) => todoItem.id === Number(todoId.value))
       const { title = '', description = '' } = findTodo || {}
       if (title !== todoContext.title || description !== todoContext.description) {
-        const requestInfo = {
+        handleSaveTodoInfo({
           id: todoId.value,
-          time: `${year}-${month}-${day}`,
+          time: renderTime,
           title: todoContext.title,
-          description: todoContext.description
-        }
-        handleSaveTodoInfo(requestInfo, 'EDIT')
+          description: todoContext.description,
+          type: 'EDIT'
+        })
       }
     } else if (todoContext.title || todoContext.description) {
       // 新增
-      handleSaveTodoInfo(
-        {
-          title: todoContext.title,
-          description: todoContext.description,
-          time
-        },
-        'ADD'
-      )
+      handleSaveTodoInfo({
+        title: todoContext.title,
+        description: todoContext.description,
+        time,
+        type: 'ADD'
+      })
     }
   }
 }
@@ -206,11 +229,16 @@ const handleDrop = (time: string, dropResult: any) => {
     if (removedIndex !== null) {
       const [firstList] = todoList.splice(removedIndex, 1)
       itemToAdd = firstList
-      emit('change-info', currentDayIndex, todoList as TodoListType)
+      if (Array.isArray(currentInfo.todoList)) {
+        emits('change-info', { index: currentDayIndex, todoList: currentInfo.todoList })
+      }
     }
     if (addedIndex !== null) {
       todoList.splice(addedIndex, 0, itemToAdd)
-      emit('change-info', currentDayIndex, todoList as TodoListType)
+      emits('change-info', {
+        index: currentDayIndex,
+        todoList: Array.isArray(todoList) ? todoList : []
+      })
     }
   }
 }
@@ -221,6 +249,16 @@ const getCardPayload = (time: string) => {
       ({ year, month, day }: RenderDaysType) => `${year}-${month}-${day}` === time
     )
     return findInfo?.todoList ? findInfo.todoList[index] : {}
+  }
+}
+
+const handleDeleteItem = async () => {
+  if (currentOpen.id !== -1) {
+    const { code } = await deleteTodoItem(currentOpen.id)
+    if (code === 200) {
+      window.$message.success('删除成功')
+      getCurrentDayInfo(currentOpen.time)
+    }
   }
 }
 </script>

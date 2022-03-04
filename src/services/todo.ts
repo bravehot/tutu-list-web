@@ -1,5 +1,6 @@
 import request from './api'
 
+// 保存 todo 信息
 const saveTodoInfo = (info: API.TodoSaveRequest) => {
   return request({
     url: '/todo/addTodoItem',
@@ -8,14 +9,16 @@ const saveTodoInfo = (info: API.TodoSaveRequest) => {
   })
 }
 
+// 获取当天的 todo 项
 const getTodoByDay = (params: { time: string }) => {
-  return request({
+  return request<API.TodoList>({
     url: '/todo/getTodoListByDay',
     method: 'GET',
     params
   })
 }
 
+// 获取开始到结束日期的 todo 项
 const getTodoByMonth = (params: { startTime: string; endTime: string }) => {
   return request<API.TodoList[]>({
     url: '/todo/getTodoListByMonth',
@@ -24,4 +27,13 @@ const getTodoByMonth = (params: { startTime: string; endTime: string }) => {
   })
 }
 
-export { saveTodoInfo, getTodoByDay, getTodoByMonth }
+// 删除当前 todo 项
+const deleteTodoItem = (id: number) => {
+  return request<API.BaseResponseType<any>>({
+    url: '/todo/deleteTodoItem',
+    method: 'DELETE',
+    data: { id }
+  })
+}
+
+export { saveTodoInfo, getTodoByDay, getTodoByMonth, deleteTodoItem }

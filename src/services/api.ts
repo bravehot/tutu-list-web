@@ -11,6 +11,12 @@ type ResponseType<T> = {
 
 const { MODE, VITE_STAGING_URL, VITE_DEV_URL, VITE_PRODUCTION_URL } = import.meta.env
 
+const systemCodeMaps: Record<number, string> = {
+  404: '404 Not Found',
+  504: '网关错误',
+  405: 'Method Not Allowed'
+} as const
+
 let BASE_URL: string = ''
 switch (MODE) {
   case 'staging':
@@ -45,20 +51,25 @@ axiosInterface.interceptors.request.use((config: AxiosRequestConfig) => {
 })
 
 // 响应拦截
-axiosInterface.interceptors.response.use((response: AxiosResponse) => {
-  const { status, data } = response
+axiosInterface.interceptors.response.use(
+  (response: AxiosResponse) => {
+    const { status, data } = response
 
-  // 处理 http 请求状态码
-  if (status === 200) {
-    const { code, message } = data
-    if (code === 403) {
-      router.push('/login')
-    } else if (code !== 200) {
-      window.$message.error(message)
+    // 处理 http 请求状态码
+    if (status === 200) {
+      const { code, message } = data
+      if (code === 403) {
+        router.push('/login')
+      } else if (code !== 200) {
+        window.$message.error(message)
+      }
     }
+    return response
+  },
+  ({ response }) => {
+    window.$message.error(systemCodeMaps[response.status])
   }
-  return response
-})
+)
 
 const request = async <T>(config: AxiosRequestConfig): Promise<ResponseType<T>> => {
   const { data } = await axiosInterface(config)

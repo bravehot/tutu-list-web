@@ -125,7 +125,8 @@ const getRenderDaysConfig = (
       isNextMonth: type === RenderMonthEnum.NEXT,
       isHoliday: isHoliday(`${year}-${month}-${day}`),
       isAdjustRest: isAddtionalWorkday(`${year}-${month}-${day}`),
-      festivalName: getFestivalName(month, day, lMonth, lDay)
+      festivalName: getFestivalName(month, day, lMonth, lDay),
+      time: dayjs(`${year}-${month}-${day}`).format('YYYY-MM-DD')
     })
   }
 
@@ -149,7 +150,7 @@ const getRenderDaysConfig = (
       year,
       currentTime.get('month') + 1,
       day,
-      RenderMonthEnum.CURRENT
+      RenderMonthEnum.CURRENT,
     )
   }
 
