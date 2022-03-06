@@ -37,7 +37,7 @@ type InputInfoType = {
 
 type HandleMonthType = 'LAST' | 'LAST'
 
-type PlacementType = 'right-start' | 'left-start' | 'top' | 'top-start' | 'top-end'
+type PlacementType = 'right-start' | 'left-start' | 'top' | 'top-start' | 'top-end' | 'right-end'
 
 export {
   CurrentTimeType,

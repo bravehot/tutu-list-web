@@ -36,4 +36,25 @@ const deleteTodoItem = (id: number) => {
   })
 }
 
-export { saveTodoInfo, getTodoByDay, getTodoByMonth, deleteTodoItem }
+// 更改 todo 项的时间
+const handleChangeTime = (data: { toTime: string; id: number }) => {
+  return request({ url: '/todo/changeTodoTime', method: 'PUT', data })
+}
+
+// 更改 todo 项的状态
+const changeTodoStatus = (data: { id: number }) => {
+  return request({
+    url: '/todo/changeStatus',
+    method: 'PUT',
+    data
+  })
+}
+
+export {
+  saveTodoInfo,
+  getTodoByDay,
+  getTodoByMonth,
+  deleteTodoItem,
+  handleChangeTime,
+  changeTodoStatus
+}

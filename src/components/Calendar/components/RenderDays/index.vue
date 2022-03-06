@@ -13,8 +13,7 @@ import { defineProps, watchEffect, reactive } from 'vue'
 import dayjs from 'dayjs'
 import useSettingStore from '@/stores/useSettingStore'
 
-// import { MOCK_INFO } from '@/mock/index'
-import { getTodoByMonth } from '@/services/todo'
+import { getTodoByMonth, handleChangeTime, getTodoByDay } from '@/services/todo'
 
 import Popover from './Popover.vue'
 
@@ -31,8 +30,32 @@ const renderDaysInfo = reactive<{
   renderDaysList: RenderDaysType[]
 }>({ renderDaysList: [] })
 
-const changeRenderDaysInfo = ({ index, todoList }: { index: number; todoList: TodoListType[] }) => {
+const changeRenderDaysInfo = async ({
+  index,
+  todoList,
+  type,
+  todoId = -1
+}: {
+  index: number
+  todoList: TodoListType[]
+  type: 'FROM' | 'TO' | 'REFRESH'
+  todoId?: number
+}) => {
   if (renderDaysInfo.renderDaysList[index] && Array.isArray(todoList)) {
+    const { time } = renderDaysInfo.renderDaysList[index]
+    if (type === 'REFRESH') {
+      renderDaysInfo.renderDaysList[index].todoList = todoList
+    }
+    if (type === 'TO') {
+      const { code } = await handleChangeTime({ toTime: time, id: todoId })
+      if (code === 200) {
+        window.$message.success('移动成功')
+
+        const { data } = await getTodoByDay({ time })
+        renderDaysInfo.renderDaysList[index].todoList = data.todoItems
+      }
+      return
+    }
     renderDaysInfo.renderDaysList[index].todoList = todoList
   }
 }

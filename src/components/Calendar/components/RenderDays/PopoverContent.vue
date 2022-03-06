@@ -9,26 +9,51 @@
     @input="handleInputChange($event, 'title')"
   />
 
-  <textarea
-    ref="descriptionDOM"
-    :value="todoContext.description"
-    :class="['text-sm w-full px-1 placeholder-gray-300', $style['base-input'], $style.description]"
-    type="textarea"
-    placeholder="请输入描述"
-    @input="handleInputChange($event, 'description')"
-  />
+  <section class="w-full h-full relative">
+    <textarea
+      ref="descriptionDOM"
+      :value="todoContext.description"
+      :class="[
+        'text-sm w-full px-1 placeholder-gray-300',
+        $style['base-input'],
+        $style.description
+      ]"
+      type="textarea"
+      placeholder="请输入描述"
+      @input="handleInputChange($event, 'description')"
+    >
+    </textarea>
+    <div v-if="todoListId && todoListId !== -1" class="absolute right-0 bottom-1 flex items-center">
+      <n-button quaternary strong circle class="mr-2">
+        <template #icon>
+          <n-icon size="18" class="text-green-500"> <SaveOutline /> </n-icon>
+        </template>
+      </n-button>
+      <n-button quaternary strong circle @click="handleDelete">
+        <template #icon>
+          <n-icon size="18" class="text-red-500">
+            <Trash />
+          </n-icon>
+        </template>
+      </n-button>
+    </div>
+  </section>
 </template>
 <script setup lang="ts">
 import { reactive, ref, onMounted, defineProps, watch, defineEmits } from 'vue'
+import { NButton, NIcon } from 'naive-ui'
+import { Trash, SaveOutline } from '@vicons/ionicons5'
 
 const props = defineProps<{
+  todoListId?: number
   todoContext: {
     title: string
     description: string
   }
 }>()
-const emit = defineEmits<{
+const emits = defineEmits<{
   (_event: 'change-info', _type: 'title' | 'description', _value: string): void
+  (_event: 'delete'): void
 }>()
 
 const descriptionDOM = ref<HTMLTextAreaElement>()
@@ -57,7 +82,11 @@ const handleInputKeyDown = (event: KeyboardEvent) => {
 
 const handleInputChange = (event: Event, type: 'title' | 'description') => {
   const target = event?.target as HTMLInputElement
-  emit('change-info', type, target.value)
+  emits('change-info', type, target.value)
+}
+
+const handleDelete = () => {
+  emits('delete')
 }
 </script>
 

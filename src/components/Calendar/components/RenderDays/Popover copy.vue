@@ -8,14 +8,20 @@
       'px-2 py-1 border-l border-b h-full',
       { 'bg-gray-50': dayInfo.isLastMonth || dayInfo.isNextMonth }
     ]"
+    tabindex="-1"
+    @blur="handleBlur($event)"
+    @focus="handleFocus($event, dayInfo)"
     @click="handleTodoClick($event, dayInfo, index)"
   >
-    <section class="h-full overflow-hidden relative click-out">
-      <section :class="['flex justify-between items-center click-out', $style['day-info']]">
-        <div class="text-center leading-4 cursor-default click-out">
+    <section
+      class="h-full overflow-hidden relative"
+      @click="handleClickDay($event, index, dayInfo)"
+    >
+      <section :class="['flex justify-between items-center', $style['day-info']]">
+        <div class="text-center leading-4 cursor-default">
           <span
             :class="[
-              'text-sm mr-2 font-normal text-gray-700 click-out',
+              'text-sm mr-2 font-normal text-gray-700',
               {
                 'inline-block bg-blue-500 rounded-full h-6 w-6 text-center leading-6 !text-white':
                   TODAY === `${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`
@@ -23,18 +29,14 @@
             ]"
             >{{ dayInfo.day }}</span
           >
-          <span class="cName text-xs text-gray-400 align-bottom click-out">{{
+          <span class="cName text-xs text-gray-400 align-bottom">{{
             dayInfo.festivalName || dayInfo.cName
           }}</span>
         </div>
-        <span
-          v-if="dayInfo.isHoliday"
-          :class="['text-green-400 bg-green-50 click-out', $style['day-text']]"
+        <span v-if="dayInfo.isHoliday" :class="['text-green-400 bg-green-50', $style['day-text']]"
           >休</span
         >
-        <span
-          v-if="dayInfo.isAdjustRest"
-          :class="['text-red-400 bg-red-50 click-out', $style['day-text']]"
+        <span v-if="dayInfo.isAdjustRest" :class="['text-red-400 bg-red-50', $style['day-text']]"
           >班</span
         >
       </section>
@@ -61,7 +63,6 @@
             :class="[
               'w-full cursor-pointer todo-item text-xs border rounded border-green-100 mb-1 text-green-500 bg-green-400 bg-opacity-50'
             ]"
-            @click="handleClickTodo(todoItem)"
           >
             <span
               :data-id="todoItem.id"
@@ -82,21 +83,16 @@
     :position="popoverPosition"
   >
     <PopoverTitle
-      :time="currentClickPopover.time"
-      :done="currentClickPopover.done"
+      :time="currentClickPopover"
       :todo-list-id="currentOpen.id"
-      @change-done="handleTodoDoneStatus"
-    />
-    <PopoverContent
-      :todo-context="todoContext"
-      :todo-list-id="openPopoverIndex.todoId"
-      @change-info="handleChangeTodoContext"
       @delete="handleDeleteItem"
     />
+    <PopoverContent :todo-context="todoContext" @change-info="handleChangeTodoContext" />
   </PopoverContentVue>
 </template>
 <script setup lang="ts">
-import { defineProps, shallowRef, reactive, defineEmits, onMounted, watch } from 'vue'
+import { defineProps, shallowRef, reactive, toRefs, defineEmits, ref, onMounted } from 'vue'
+// import { NPopover } from 'naive-ui'
 import dayjs from 'dayjs'
 /**
  * Container 包含可拖动的元素或组件，它的每一个子元素都应该被 Draggable 包裹
@@ -105,7 +101,7 @@ import dayjs from 'dayjs'
  */
 // @ts-ignore
 import { Container, Draggable } from 'vue3-smooth-dnd'
-import { saveTodoInfo, deleteTodoItem, getTodoByDay, changeTodoStatus } from '@/services/todo'
+import { saveTodoInfo, deleteTodoItem, getTodoByDay } from '@/services/todo'
 import PopoverContentVue from '@/components/PopoverContent.vue'
 import { getPlacement } from '../../utils'
 
@@ -130,24 +126,20 @@ const emits = defineEmits<{
   ): void
 }>()
 
-const currentClickPopover = reactive<{ time: string; done: number }>({ time: '', done: 0 })
+const currentClickPopover = ref<string>('')
 
-// 外层 popover id
 const currentOpen = reactive<{ id: number; time: string }>({
   id: -1,
   time: ''
 })
-// 内层点击的 todo id
 const openPopoverIndex = reactive({
   popoverIndex: -1,
   todoId: -1
 })
 
-const popoverPosition = reactive<{ left: number; top: number; width: number; height: number }>({
+const popoverPosition = reactive<{ left: number; top: number }>({
   left: NaN,
-  top: NaN,
-  width: NaN,
-  height: NaN
+  top: NaN
 })
 
 const popoverVisible = reactive<{ show: boolean; placement: PlacementType }>({
@@ -155,16 +147,9 @@ const popoverVisible = reactive<{ show: boolean; placement: PlacementType }>({
   placement: 'left-start'
 })
 
-const todoContext = reactive<{
-  title: string
-  description: string
-  lastTitle: string
-  lastDescription: string
-}>({
+const todoContext = reactive<{ title: string; description: string }>({
   title: '',
-  description: '',
-  lastTitle: '',
-  lastDescription: ''
+  description: ''
 })
 
 const TODAY = shallowRef<string>(dayjs().format('YYYY-M-D'))
@@ -179,10 +164,69 @@ onMounted(() => {
   }
 })
 
+const handleChangeTodoContext = (type: 'title' | 'description', value: string) => {
+  todoContext[type] = value
+}
+
+const handleTodoClick = (event: Event, dayInfo: RenderDaysType, index: number) => {
+  if (dayInfo.time !== currentClickPopover.value) {
+    const postion = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    popoverPosition.left = postion.left
+    popoverPosition.top = postion.top
+    popoverVisible.show = true
+    currentClickPopover.value = dayInfo.time || ''
+  } else {
+    popoverVisible.show = false
+    currentClickPopover.value = ''
+  }
+  popoverVisible.placement = getPlacement(index, props.renderDaysList)
+}
+
+const handleBlur = (event: FocusEvent) => {
+  event.stopPropagation()
+
+  // const postion = (event.target as HTMLElement).getBoundingClientRect()
+  // popoverPosition.left = postion.left
+  // popoverPosition.top = postion.top
+  // popoverVisible.show = true
+}
+
+const handleFocus = (event: FocusEvent, dayInfo: RenderDaysType) => {
+  console.log('dayInfo: ', dayInfo)
+  event.stopPropagation()
+  // if (dayInfo.id !== currentOpen.id) {
+  // } else {
+  //   popoverVisible.show = false
+  // }
+}
+
+const handleClickDay = (event: Event, index: number, dayInfo: RenderDaysType) => {
+  const target = event.target as HTMLElement
+  const todoId = target.dataset.id
+
+  currentOpen.id = Number(todoId) ?? -1
+  currentOpen.time = dayInfo.time
+
+  openPopoverIndex.popoverIndex = index
+  openPopoverIndex.todoId = Number(todoId)
+
+  // open the parent element or todo element
+  if (target?.className.includes('todo-item')) {
+    const todoList = props.renderDaysList[index]?.todoList || []
+    const findTodo = todoList.find((todoItem) => todoItem.id === Number(todoId))
+    const { title = '', description = '' } = findTodo || {}
+
+    todoContext.description = description
+    todoContext.title = title
+  } else {
+    todoContext.description = ''
+    todoContext.title = ''
+  }
+}
+
 const getCurrentDayInfo = async (time: string) => {
   const { code, data } = await getTodoByDay({ time })
   if (code === 200) {
-    popoverVisible.show = false
     const findIndex = props.renderDaysList.findIndex((item) => {
       return item.time === data.time
     })
@@ -199,123 +243,40 @@ const getCurrentDayInfo = async (time: string) => {
 const handleSaveTodoInfo = async (info: API.TodoSaveRequest) => {
   const { code } = await saveTodoInfo(info)
   if (code === 200) {
-    window.$message.success(info.id ? '修改成功' : '添加成功')
+    window.$message.success('添加成功')
     // 更新当天的 todo 项
     getCurrentDayInfo(info.time)
   }
 }
 
-watch(
-  () => [
-    openPopoverIndex.todoId,
-    currentClickPopover.time,
-    todoContext.title,
-    todoContext.description
-  ],
-  ([todoId, time], [preTodoId, preTime, prevTitle, prevDescription]) => {
-    if (todoId !== preTodoId && (preTodoId !== -1 || todoId === -1)) {
-      const saveTime = preTime || time
-      const saveId = preTodoId || todoId
-
-      const findTodoList = props.renderDaysList.find((renderItem) => renderItem.time === saveTime)
-      if (findTodoList) {
-        const todo = findTodoList.todoList?.find((todoItem) => +todoItem.id === +saveId)
-        if (todo) {
-          if (todo?.title !== prevTitle || todo.description !== prevDescription) {
-            handleSaveTodoInfo({
-              id: Number(preTodoId),
-              title: prevTitle.toString(),
-              description: prevDescription.toString(),
-              time: preTime.toString(),
-              type: 'EDIT'
-            })
-          }
-        }
+const handlePopoverShow = (visible: boolean, time: string) => {
+  if (!visible) {
+    const { popoverIndex, todoId } = toRefs(openPopoverIndex)
+    // 查看 或 编辑
+    if (!Number.isNaN(todoId.value)) {
+      const { todoList = [], time: renderTime } = props.renderDaysList[popoverIndex.value]
+      const findTodo = todoList.find((todoItem) => todoItem.id === Number(todoId.value))
+      const { title = '', description = '' } = findTodo || {}
+      if (title !== todoContext.title || description !== todoContext.description) {
+        handleSaveTodoInfo({
+          id: todoId.value,
+          time: renderTime,
+          title: todoContext.title,
+          description: todoContext.description,
+          type: 'EDIT'
+        })
       }
+    } else if (todoContext.title || todoContext.description) {
+      // 新增
+      handleSaveTodoInfo({
+        title: todoContext.title,
+        description: todoContext.description,
+        time,
+        type: 'ADD'
+      })
     }
-  }
-)
-
-watch(
-  () => [openPopoverIndex.todoId, currentClickPopover.time],
-  ([todoId, time], [preTodoId, preTime]) => {
-    if (todoId === preTodoId && preTime) {
-      const info = {
-        title: '',
-        description: ''
-      }
-      if (todoId === preTodoId && time) {
-        info.title = todoContext.title || todoContext.lastTitle
-        info.description = todoContext.description || todoContext.lastDescription
-      } else {
-        info.title = todoContext.title
-        info.description = todoContext.description
-      }
-
-      handleSaveTodoInfo({ ...info, type: 'ADD', time: preTime.toString() })
-    }
-  }
-)
-
-const handleClickTodo = (todoItemInfo: TodoListType) => {
-  if (openPopoverIndex.todoId !== todoItemInfo.id) {
-    todoContext.title = todoItemInfo.title
-    todoContext.description = todoItemInfo.description
   }
 }
-
-const handleChangeTodoContext = (type: 'title' | 'description', value: string) => {
-  todoContext[type] = value
-}
-
-const handleTodoClick = (event: Event, dayInfo: RenderDaysType, index: number) => {
-  event.preventDefault()
-  event.stopPropagation()
-  const target = event.target as HTMLElement
-
-  const positionInfo = (element: HTMLElement) => {
-    if (element) {
-      const postion = element.getBoundingClientRect()
-      popoverPosition.left = postion.left + postion.width
-      popoverPosition.top = postion.top
-      popoverPosition.width = postion.width
-      popoverPosition.height = postion.height
-    }
-  }
-
-  positionInfo(event.currentTarget as HTMLElement)
-  // 点击空白区
-  if (target.className.includes('smooth-dnd-container') || target.className.includes('click-out')) {
-    // 如果点击的不是同一个 todoDay
-    if (dayInfo.time !== currentClickPopover.time) {
-      popoverVisible.show = true
-      currentClickPopover.time = dayInfo.time || ''
-
-      todoContext.lastTitle = todoContext.title
-      todoContext.lastDescription = todoContext.description
-
-      todoContext.title = ''
-      todoContext.description = ''
-    } else {
-      popoverVisible.show = false
-      currentClickPopover.time = ''
-    }
-    openPopoverIndex.todoId = -1
-  } else {
-    // 点击 todo 项
-    const todoId = target.dataset.id || -1
-    if (Number(todoId) !== Number(openPopoverIndex.todoId)) {
-      openPopoverIndex.todoId = Number(todoId) || -1
-      popoverVisible.show = true
-      currentClickPopover.time = dayInfo.time
-    } else {
-      openPopoverIndex.todoId = -1
-      popoverVisible.show = false
-    }
-  }
-  popoverVisible.placement = getPlacement(index, props.renderDaysList)
-}
-
 const handleDrop = (time: string, dropResult: any) => {
   const { removedIndex, addedIndex, payload } = dropResult
   let itemToAdd = payload
@@ -355,15 +316,6 @@ const getCardPayload = (time: string) => {
       ({ year, month, day }: RenderDaysType) => `${year}-${month}-${day}` === time
     )
     return findInfo?.todoList ? findInfo.todoList[index] : {}
-  }
-}
-
-const handleTodoDoneStatus = async (status: boolean, todoId: number) => {
-  currentClickPopover.done = Number(status)
-  const { code } = await changeTodoStatus({ id: todoId })
-  if (code === 200) {
-    window.$message.success('状态修改成功')
-    getCurrentDayInfo(currentOpen.time)
   }
 }
 

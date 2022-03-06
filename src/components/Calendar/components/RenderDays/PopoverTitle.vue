@@ -8,30 +8,22 @@
       <span v-else>{{ titleInfo.title }}</span>
     </p>
 
-    <n-button
+    <n-checkbox
       v-if="todoListId && todoListId !== -1"
       class="ml-auto"
-      quaternary
-      strong
-      circle
-      @click="handleDelete"
-    >
-      <template #icon>
-        <n-icon size="18" class="text-red-500">
-          <Trash />
-        </n-icon>
-      </template>
-    </n-button>
+      :value="isDone"
+      :on-update:checked="handleDoneStatus"
+    />
   </section>
 </template>
 <script setup lang="ts">
-import { computed, defineProps } from 'vue'
+import { computed, defineProps, ref } from 'vue'
 import dayjs from 'dayjs'
 import { storeToRefs } from 'pinia'
 
-import { NButton, NIcon } from 'naive-ui'
+import { NCheckbox } from 'naive-ui'
 import { Icon } from '@vicons/utils'
-import { CalendarSharp, Trash } from '@vicons/ionicons5'
+import { CalendarSharp } from '@vicons/ionicons5'
 
 import updateLocale from 'dayjs/plugin/updateLocale'
 import weekOfYear from 'dayjs/plugin/weekOfYear'
@@ -39,15 +31,17 @@ import weekOfYear from 'dayjs/plugin/weekOfYear'
 import useSettingStore from '@/stores/useSettingStore'
 
 const props = defineProps<{
+  done: number
   time: string
   todoListId?: number
 }>()
 
 const emits = defineEmits<{
-  (_event: 'delete'): void
+  (_event: 'change-done', _state: boolean, _todoId: number): void
 }>()
 
 const { weekStart, weekList } = storeToRefs(useSettingStore())
+const isDone = ref(props.done)
 dayjs.extend(weekOfYear)
 
 if (weekStart.value === 'startMonday') {
@@ -111,7 +105,7 @@ const calendarSharpColor = computed(() => {
   return diffDays > 0 ? 'text-green-400	' : 'text-red-400	'
 })
 
-const handleDelete = () => {
-  emits('delete')
+const handleDoneStatus = (status: boolean) => {
+  emits('change-done', status, props.todoListId || 0)
 }
 </script>
