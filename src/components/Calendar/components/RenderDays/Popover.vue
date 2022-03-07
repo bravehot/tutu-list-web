@@ -42,6 +42,7 @@
       <section :class="[$style['todo-wrapper'], 'absolute', 'w-full']">
         <Container
           :key="`${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`"
+          lock-axis="x"
           class="h-full"
           orientation="vertical"
           group-name="col-items"
@@ -59,7 +60,8 @@
             :data-id="todoItem.id"
             :index="draggableIndex"
             :class="[
-              'w-full cursor-pointer todo-item text-xs border rounded border-green-100 mb-1 text-green-500 bg-green-400 bg-opacity-50'
+              'w-full cursor-pointer todo-item text-xs border rounded border-green-100 mb-1 text-green-500 bg-green-400 bg-opacity-50',
+              { 'text-opacity-50 bg-green-200': todoItem.done }
             ]"
             @click="handleClickTodo(todoItem)"
           >
@@ -84,19 +86,20 @@
     <PopoverTitle
       :time="currentClickPopover.time"
       :done="currentClickPopover.done"
-      :todo-list-id="currentOpen.id"
+      :todo-list-id="openPopoverIndex.todoId"
       @change-done="handleTodoDoneStatus"
     />
     <PopoverContent
       :todo-context="todoContext"
       :todo-list-id="openPopoverIndex.todoId"
+      :content-save-btn="isContentSave"
       @change-info="handleChangeTodoContext"
       @delete="handleDeleteItem"
     />
   </PopoverContentVue>
 </template>
 <script setup lang="ts">
-import { defineProps, shallowRef, reactive, defineEmits, onMounted, watch } from 'vue'
+import { defineProps, shallowRef, reactive, defineEmits, onMounted, watch, ref } from 'vue'
 import dayjs from 'dayjs'
 /**
  * Container 包含可拖动的元素或组件，它的每一个子元素都应该被 Draggable 包裹
@@ -130,18 +133,15 @@ const emits = defineEmits<{
   ): void
 }>()
 
+// 点击外侧的 todoList
 const currentClickPopover = reactive<{ time: string; done: number }>({ time: '', done: 0 })
-
-// 外层 popover id
-const currentOpen = reactive<{ id: number; time: string }>({
-  id: -1,
-  time: ''
-})
 // 内层点击的 todo id
 const openPopoverIndex = reactive({
   popoverIndex: -1,
   todoId: -1
 })
+// 判断是否是通过里面的 popoverContent 组件点击的保存
+const isContentSave = ref<boolean>(false)
 
 const popoverPosition = reactive<{ left: number; top: number; width: number; height: number }>({
   left: NaN,
@@ -182,7 +182,6 @@ onMounted(() => {
 const getCurrentDayInfo = async (time: string) => {
   const { code, data } = await getTodoByDay({ time })
   if (code === 200) {
-    popoverVisible.show = false
     const findIndex = props.renderDaysList.findIndex((item) => {
       return item.time === data.time
     })
@@ -206,26 +205,29 @@ const handleSaveTodoInfo = async (info: API.TodoSaveRequest) => {
 }
 
 watch(
-  () => [
-    openPopoverIndex.todoId,
-    currentClickPopover.time,
-    todoContext.title,
-    todoContext.description
-  ],
-  ([todoId, time], [preTodoId, preTime, prevTitle, prevDescription]) => {
+  () => [openPopoverIndex.todoId, currentClickPopover.time],
+  ([todoId], [preTodoId, preTime]) => {
     if (todoId !== preTodoId && (preTodoId !== -1 || todoId === -1)) {
-      const saveTime = preTime || time
-      const saveId = preTodoId || todoId
-
-      const findTodoList = props.renderDaysList.find((renderItem) => renderItem.time === saveTime)
+      const findTodoList = props.renderDaysList.find((renderItem) => renderItem.time === preTime)
       if (findTodoList) {
-        const todo = findTodoList.todoList?.find((todoItem) => +todoItem.id === +saveId)
-        if (todo) {
-          if (todo?.title !== prevTitle || todo.description !== prevDescription) {
+        const todo = findTodoList.todoList?.find((todoItem) => +todoItem.id === +preTodoId)
+        // 切换到了 todo time 或者 切换了 todo
+        if (todo && (todoId === -1 || todoId !== preTodoId)) {
+          if (
+            todo.title !== todoContext.lastTitle ||
+            todo.description !== todoContext.lastDescription
+          ) {
+            // 关闭 todo time 的时候，取当前的 todoContext 的值
+            const info = {
+              title: currentClickPopover.time === '' ? todoContext.title : todoContext.lastTitle,
+              description:
+                currentClickPopover.time === ''
+                  ? todoContext.description
+                  : todoContext.lastDescription
+            }
             handleSaveTodoInfo({
+              ...info,
               id: Number(preTodoId),
-              title: prevTitle.toString(),
-              description: prevDescription.toString(),
               time: preTime.toString(),
               type: 'EDIT'
             })
@@ -251,17 +253,22 @@ watch(
         info.title = todoContext.title
         info.description = todoContext.description
       }
-
-      handleSaveTodoInfo({ ...info, type: 'ADD', time: preTime.toString() })
+      if (info.title) {
+        handleSaveTodoInfo({ ...info, type: 'ADD', time: preTime.toString() })
+      }
     }
   }
 )
 
 const handleClickTodo = (todoItemInfo: TodoListType) => {
   if (openPopoverIndex.todoId !== todoItemInfo.id) {
+    todoContext.lastTitle = todoContext.title
+    todoContext.lastDescription = todoContext.description
+
     todoContext.title = todoItemInfo.title
     todoContext.description = todoItemInfo.description
   }
+  currentClickPopover.done = todoItemInfo.done
 }
 
 const handleChangeTodoContext = (type: 'title' | 'description', value: string) => {
@@ -311,6 +318,9 @@ const handleTodoClick = (event: Event, dayInfo: RenderDaysType, index: number) =
     } else {
       openPopoverIndex.todoId = -1
       popoverVisible.show = false
+
+      todoContext.title = ''
+      todoContext.description = ''
     }
   }
   popoverVisible.placement = getPlacement(index, props.renderDaysList)
@@ -363,16 +373,17 @@ const handleTodoDoneStatus = async (status: boolean, todoId: number) => {
   const { code } = await changeTodoStatus({ id: todoId })
   if (code === 200) {
     window.$message.success('状态修改成功')
-    getCurrentDayInfo(currentOpen.time)
+    getCurrentDayInfo(currentClickPopover.time)
+    popoverVisible.show = false
   }
 }
 
 const handleDeleteItem = async () => {
-  if (currentOpen.id !== -1) {
-    const { code } = await deleteTodoItem(currentOpen.id)
+  if (openPopoverIndex.todoId !== -1) {
+    const { code } = await deleteTodoItem(openPopoverIndex.todoId)
     if (code === 200) {
       window.$message.success('删除成功')
-      getCurrentDayInfo(currentOpen.time)
+      getCurrentDayInfo(currentClickPopover.time)
     }
   }
 }

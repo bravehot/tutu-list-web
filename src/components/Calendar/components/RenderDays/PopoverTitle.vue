@@ -11,13 +11,13 @@
     <n-checkbox
       v-if="todoListId && todoListId !== -1"
       class="ml-auto"
-      :value="isDone"
+      :checked="isDone"
       :on-update:checked="handleDoneStatus"
     />
   </section>
 </template>
 <script setup lang="ts">
-import { computed, defineProps, ref } from 'vue'
+import { computed, defineProps, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { storeToRefs } from 'pinia'
 
@@ -41,7 +41,9 @@ const emits = defineEmits<{
 }>()
 
 const { weekStart, weekList } = storeToRefs(useSettingStore())
-const isDone = ref(props.done)
+
+const isDone = ref<boolean>(Boolean(props.done))
+
 dayjs.extend(weekOfYear)
 
 if (weekStart.value === 'startMonday') {
@@ -50,6 +52,13 @@ if (weekStart.value === 'startMonday') {
     weekStart: 1
   })
 }
+
+watch(
+  () => props.done,
+  (current) => {
+    isDone.value = Boolean(current)
+  }
+)
 
 const titleInfo = computed<{ title: string; diffDays: number }>(() => {
   let title = ''

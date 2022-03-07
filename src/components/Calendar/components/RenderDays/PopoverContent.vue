@@ -23,13 +23,19 @@
       @input="handleInputChange($event, 'description')"
     >
     </textarea>
-    <div v-if="todoListId && todoListId !== -1" class="absolute right-0 bottom-1 flex items-center">
-      <n-button quaternary strong circle class="mr-2">
+    <div class="absolute right-0 bottom-1 flex items-center">
+      <!-- <n-button quaternary strong circle class="mr-2" @click="handleSaveInfo">
         <template #icon>
           <n-icon size="18" class="text-green-500"> <SaveOutline /> </n-icon>
         </template>
-      </n-button>
-      <n-button quaternary strong circle @click="handleDelete">
+      </n-button> -->
+      <n-button
+        v-if="todoListId && todoListId !== -1"
+        quaternary
+        strong
+        circle
+        @click="handleDelete"
+      >
         <template #icon>
           <n-icon size="18" class="text-red-500">
             <Trash />
@@ -42,10 +48,17 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, defineProps, watch, defineEmits } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
-import { Trash, SaveOutline } from '@vicons/ionicons5'
+// SaveOutline
+import { Trash } from '@vicons/ionicons5'
+
+type TodoContextType = {
+  title: string
+  description: string
+}
 
 const props = defineProps<{
   todoListId?: number
+  contentSaveBtn: boolean
   todoContext: {
     title: string
     description: string
@@ -54,12 +67,13 @@ const props = defineProps<{
 const emits = defineEmits<{
   (_event: 'change-info', _type: 'title' | 'description', _value: string): void
   (_event: 'delete'): void
+  (_event: 'save', _info: TodoContextType & { type: 'ADD' | 'EDIT' }): void
 }>()
 
 const descriptionDOM = ref<HTMLTextAreaElement>()
 const titleDOM = ref<HTMLInputElement>()
 
-const todoContext = reactive<{ title: string; description: string }>({
+const todoContext = reactive<TodoContextType>({
   title: props.todoContext.title,
   description: props.todoContext.description
 })
