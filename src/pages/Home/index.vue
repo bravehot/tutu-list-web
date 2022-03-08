@@ -26,14 +26,12 @@
           <p :class="[$style['tutu-title'], 'text-7xl text-white text-center']">Tutu List</p>
           <section
             :class="[
-              'text-white rounded-2xl px-10 py-5 leading-loose text-lg font-medium ml-5',
+              'text-white rounded-2xl px-10 py-5 leading-loose text-lg font-medium ml-5 flex justify-between flex-col',
               $style['tutu-description'],
               $style['clay']
             ]"
           >
-            Tutu List 是一款以日历为视角的 todo
-            待办应用，该应用是由互联网民工中的一名肥宅前端工程师开发，涉及 Web 端、Electron
-            桌面端、Flutter 客户端、并基于 Serverless 能力构建，欢迎大家登录体验！！！
+            Tutu List 是一款以日历为视角的 todo 待办应用
             <div class="w-4/5 mt-5 grid grid-cols-2 gap-12">
               <button
                 type="button"
@@ -111,6 +109,7 @@ export default defineComponent({
 .tutu-description {
   font-family: 'SupermercadoOne-Regular';
   width: 580px;
+  height: 250px;
   background-color: #58aece;
 }
 .clay {

@@ -24,4 +24,9 @@ interface Window {
     warning: (message: string) => void
     error: (message: string) => void
   }
+  AuthingNativeJsUIComponents: any
+}
+
+declare namespace Aut {
+
 }

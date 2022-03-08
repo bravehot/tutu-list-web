@@ -35,6 +35,7 @@ switch (MODE) {
 const axiosInterface = axios.create({
   baseURL: `${BASE_URL}/api`,
   timeout: 10000,
+  withCredentials: true,
   headers: {
     'content-type': 'application/json'
   }
