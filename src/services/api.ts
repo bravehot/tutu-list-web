@@ -35,7 +35,6 @@ switch (MODE) {
 const axiosInterface = axios.create({
   baseURL: `${BASE_URL}/api`,
   timeout: 10000,
-  withCredentials: true,
   headers: {
     'content-type': 'application/json'
   }
@@ -59,9 +58,9 @@ axiosInterface.interceptors.response.use(
     // 处理 http 请求状态码
     if (status === 200) {
       const { code, message } = data
-      if (code === 403) {
+      if (+code === 403) {
         router.push('/login')
-      } else if (code !== 200) {
+      } else if (+code !== 200) {
         window.$message.error(message)
       }
     }

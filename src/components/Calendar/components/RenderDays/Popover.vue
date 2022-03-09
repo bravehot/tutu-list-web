@@ -42,7 +42,6 @@
       <section :class="[$style['todo-wrapper'], 'absolute', 'w-full']">
         <Container
           :key="`${dayInfo.year}-${dayInfo.month}-${dayInfo.day}`"
-          lock-axis="x"
           class="h-full"
           orientation="vertical"
           group-name="col-items"
@@ -328,12 +327,20 @@ const handleTodoClick = (event: Event, dayInfo: RenderDaysType, index: number) =
 
 const handleDrop = (time: string, dropResult: any) => {
   const { removedIndex, addedIndex, payload } = dropResult
+
+  // 同一列禁止移动
+  if (typeof removedIndex === 'number' && typeof addedIndex === 'number') {
+    return
+  }
+
   let itemToAdd = payload
   if (removedIndex !== null || addedIndex !== null) {
     const currentDayIndex = props.renderDaysList.findIndex(({ year, month, day }) => {
       return `${year}-${month}-${day}` === time
     })
+
     const currentInfo = props.renderDaysList[currentDayIndex]
+
     const todoList = currentInfo.todoList || []
     if (removedIndex !== null) {
       const [firstList] = todoList.splice(removedIndex, 1)

@@ -24,15 +24,4 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach(async (to, _form, next) => {
-  const isLogin = window.localStorage.getItem('_authing_token')
-  if (!isLogin) {
-    if (to.path !== '/login') {
-      next({ path: '/login' })
-      window.$message.warning('请先完成登录')
-    }
-  }
-  next()
-  return Boolean(isLogin)
-})
 export default router

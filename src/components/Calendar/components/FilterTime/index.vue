@@ -23,10 +23,6 @@
         <ArrowRedoOutline />
       </Icon>
     </section>
-    <PopoverContent>
-      <template #trigger> <n-button>button info</n-button> </template>
-      渲染到 body
-    </PopoverContent>
   </section>
 </template>
 
@@ -34,12 +30,10 @@
 import { defineProps, defineEmits } from 'vue'
 
 import dayjs from 'dayjs'
-import { NDatePicker, NButton } from 'naive-ui'
+import { NDatePicker } from 'naive-ui'
 
 import { Icon } from '@vicons/utils'
 import { ArrowUndoOutline, ArrowRedoOutline } from '@vicons/ionicons5'
-
-import PopoverContent from '../../../Popover/index.vue'
 
 const props = defineProps<{
   currentMonth: number
